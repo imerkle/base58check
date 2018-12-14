@@ -42,7 +42,7 @@ defmodule Base58CheckTest do
     assert encode58check(@test_hex, 0, false) == btc_address
   end
 
-  """"
+  """
   test "decode58check/1 accepts hex and returns payload and prefix" do
     {payload, prefix} = decode58check(@test_base58)
     assert Base.encode16(payload, case: :lower) == @test_hex
