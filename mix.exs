@@ -3,8 +3,8 @@ defmodule Base58Check.Mixfile do
 
   def project do
     [app: :base58check,
-     version: "0.1.0",
-     elixir: "~> 1.0",
+     version: "0.2.0",
+     elixir: "~> 1.7",
      deps: deps,
      package: package,
      name: "Base58Check",

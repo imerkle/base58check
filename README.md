@@ -1,5 +1,9 @@
 Base58Check
 ===========
+
+[![Build Status](https://travis-ci.com/imerkle/base58check.svg?branch=master)](https://travis-ci.com/imerkle/base58check)
+
+
 [Base58Check](https://en.bitcoin.it/wiki/Base58Check_encoding) encoding in Elixir with the Bitcoin-specific alphabet. 
 
 
