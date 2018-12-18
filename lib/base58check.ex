@@ -73,7 +73,7 @@ defmodule Base58Check do
          "EPs5zLP2T9"
   """
   @spec encode58check(String.t(), String.t()) :: String.t()
-  def encode58check(data, prefix, isCompressed \\ false) when is_binary(prefix) and is_binary(data) do
+  def encode58check(data, prefix, isCompressed \\ false, checksumType \\ "256x2") when is_binary(prefix) and is_binary(data) do
     data = case Base.decode16(String.upcase(data)) do
         {:ok, bin}  ->  bin
         :error      ->  data
@@ -81,10 +81,10 @@ defmodule Base58Check do
     
     compressed = if isCompressed do <<0x01>> else "" end
     versioned_data = prefix <> data <> compressed
-    checksum = generate_checksum(versioned_data)
+    checksum = generate_checksum(versioned_data, checksumType)
     encode58(versioned_data <> checksum)
   end
-  def encode58check(data, prefix, isCompressed) do
+  def encode58check(data, prefix, isCompressed, checksumType) do
     prefix = if is_integer(prefix), do: :binary.encode_unsigned(prefix), else: prefix
     data = if is_integer(data), do: :binary.encode_unsigned(data), else: data
     encode58check(data, prefix)
@@ -118,8 +118,13 @@ defmodule Base58Check do
     end
   end
 
-  defp generate_checksum(versioned_data) do
-    <<checksum::binary-size(4), _rest::binary-size(28)>> = :crypto.hash(:sha256, :crypto.hash(:sha256, versioned_data))
+  defp generate_checksum(versioned_data, checksumType \\ "256x2") do
+
+    <<checksum::binary-size(4), _rest::binary-size(28)>> = case checksumType do
+      "256x2" ->  :crypto.hash(:sha256, :crypto.hash(:sha256, versioned_data))
+      _-> :crypto.hash(:ripemd160, versioned_data)
+      
+    end
     checksum
   end
 
