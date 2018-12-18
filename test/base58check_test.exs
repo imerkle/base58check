@@ -24,22 +24,27 @@ defmodule Base58CheckTest do
   @test_hex "1e99423a4ed27608a15a2616a2b0e9e52ced330ac530edcc32c8ffc6a526aedd"
   @test_base58 "5J3mBbAH58CpQ3Y5RNJpUKPE62SQ5tfcvU2JpbnkeyhfsYB1Jcn"
 
-  test "encode58check/3 accepts integer" do
+  test "encode58check/4 accepts integer" do
     bin = Base.decode16! @test_hex, case: :lower
     integer = :binary.decode_unsigned(bin)
     assert encode58check(integer, 128, false) == @test_base58
   end
 
-  test "encode58check/2 accepts binary" do
+  test "encode58check/4 accepts binary" do
     data_bin = Base.decode16! @test_hex, case: :lower
     prefix_bin = :binary.encode_unsigned(128)
     assert encode58check(data_bin, prefix_bin, false) == @test_base58
   end
 
-  test "encode58check/2 accepts hex" do
+  test "encode58check/4 accepts hex" do
     assert encode58check(@test_hex, 128, false) == @test_base58
     btc_address = "1EUbuiBzfdq939oPArvPGe6sRcUskoYCexXbRk1R6r2hwNdAP2"
     assert encode58check(@test_hex, 0, false) == btc_address
+  end
+  
+  test "encode58check/4 with checksumType == ripemd160" do
+    #from eos
+    assert encode58check("0258a14ef506628f0a56a4cfbe8d8496cbfb4bbf76df4ec254a7c0396e605a0031", "", false, "ripemd160") == "5ZXHpkLdY9qqYLEL5D5VPwZop9BrF6pCMT4QauJJzkrA7xitfA"
   end
 
   """
