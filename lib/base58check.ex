@@ -8,7 +8,7 @@ defmodule Base58Check do
   @ripple_alphabet "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz"
   
   
-  def do_encode58(value, b58_alphabet \\ @default_alphabet) do
+  defp do_encode58(value, b58_alphabet \\ @default_alphabet) do
     
     b58_alphabet
     |> String.at(value)
@@ -16,7 +16,7 @@ defmodule Base58Check do
     |> hd
   end
   
-  def do_decode58(encoding, b58_alphabet \\ @default_alphabet) do
+  defp do_decode58(encoding, b58_alphabet \\ @default_alphabet) do
     
     ch = List.to_string([encoding])
     {value, _length} = :binary.match(b58_alphabet, ch)
