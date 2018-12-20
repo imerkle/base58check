@@ -3,21 +3,23 @@ defmodule Base58CheckTest do
 
   import Base58Check
 
-  test "encode58/1" do
-    assert encode58(0) == ""
-    assert encode58(57) == "z"
-    assert encode58(1024) == "Jf"
-    assert encode58(123456789) == "BukQL"
-    assert encode58(<<1, 0>>) == "5R"
-  end
+  @alphabet "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
+  test "encode58/1" do
+    assert encode58(0, @alphabet) == ""
+    assert encode58(57, @alphabet) == "z"
+    assert encode58(1024, @alphabet) == "Jf"
+    assert encode58(123456789, @alphabet) == "BukQL"
+    assert encode58(<<1, 0>>, @alphabet) == "5R"
+  end
+  
   test "decode58/1" do
-    assert decode58("") == 0
-    assert decode58("z") == 57
-    assert decode58("Jf") == 1024
-    assert decode58("BukQL") == 123456789
+    assert decode58("", @alphabet) == 0
+    assert decode58("z", @alphabet) == 57
+    assert decode58("Jf", @alphabet) == 1024
+    assert decode58("BukQL", @alphabet) == 123456789
     assert_raise ArgumentError, fn ->
-      decode58(123)
+      decode58(123, @alphabet)
     end
   end
 
@@ -40,6 +42,13 @@ defmodule Base58CheckTest do
     assert encode58check(@test_hex, 128, false) == @test_base58
     btc_address = "1EUbuiBzfdq939oPArvPGe6sRcUskoYCexXbRk1R6r2hwNdAP2"
     assert encode58check(@test_hex, 0, false) == btc_address
+  end
+
+  test "encode58check/4 accepts different alphabets" do
+    test_hex = "f1862e7d6d492f4f802aefa32067f8cd3b7b34f3"
+    ripple_address = "rPphbLGemSQv4De1LUHYq6tupBkrrZUxNe"
+    checksum_hash_type = "256x2"
+    assert encode58check(test_hex, 0, false, checksum_hash_type, "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz") == ripple_address
   end
   
   test "encode58check/4 with checksumType == ripemd160" do

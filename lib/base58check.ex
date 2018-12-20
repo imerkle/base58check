@@ -4,12 +4,23 @@ defmodule Base58Check do
   This module is used for encoding and decoding in a Base58 format.
   It also protects against errors in address transcription and entry.
   """
-
-  b58_alphabet = Enum.with_index('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
-
-  for {encoding, value} <- b58_alphabet do
-    defp do_encode58(unquote(value)), do: unquote(encoding)
-    defp do_decode58(unquote(encoding)), do: unquote(value)
+  @default_alphabet "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+  @ripple_alphabet "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz"
+  
+  
+  def do_encode58(value, b58_alphabet \\ @default_alphabet) do
+    
+    b58_alphabet
+    |> String.at(value)
+    |> String.to_charlist()
+    |> hd
+  end
+  
+  def do_decode58(encoding, b58_alphabet \\ @default_alphabet) do
+    
+    ch = List.to_string([encoding])
+    {value, _length} = :binary.match(b58_alphabet, ch)
+    value
   end
 
   @doc """
@@ -22,21 +33,21 @@ defmodule Base58Check do
     iex> encode58("encode this")
          "S9qetuAJP32Bbu4"
   """
-  @spec encode58(Integer.t()) :: String.t()
-  def encode58(data) do
-    encoded_zeroes = convert_leading_zeroes(data, [])
+  @spec encode58(Integer.t(), String.t()) :: String.t()
+  def encode58(data, alphabet) do
+    encoded_zeroes = convert_leading_zeroes(data, [], alphabet |> String.at(0) )
     integer = if is_binary(data), do: :binary.decode_unsigned(data), else: data
-    encode58(integer, [], encoded_zeroes)
+    encode58(integer, alphabet, [], encoded_zeroes)
   end
-  defp encode58(0, acc, encoded_zeroes), do: to_string([encoded_zeroes|acc])
-  defp encode58(integer, acc, encoded_zeroes) do
-    encode58(div(integer, 58), [do_encode58(rem(integer, 58)) | acc], encoded_zeroes)
+  defp encode58(0, alphabet, acc, encoded_zeroes), do: to_string([encoded_zeroes|acc])
+  defp encode58(integer, alphabet, acc, encoded_zeroes) do
+    encode58(div(integer, 58), alphabet, [do_encode58(rem(integer, 58), alphabet) | acc], encoded_zeroes)
   end
-  defp convert_leading_zeroes(<<0>> <> data, encoded_zeroes) do
-    encoded_zeroes = ['1'|encoded_zeroes]
-    convert_leading_zeroes(data, encoded_zeroes)
+  defp convert_leading_zeroes(<<0>> <> data, encoded_zeroes, first_char) do
+    encoded_zeroes = [first_char|encoded_zeroes]
+    convert_leading_zeroes(data, encoded_zeroes, first_char)
   end
-  defp convert_leading_zeroes(_data, encoded_zeroes), do: encoded_zeroes
+  defp convert_leading_zeroes(_data, encoded_zeroes, _first_char), do: encoded_zeroes
 
   @doc """
   Converts the Base58 format data into an integer.
@@ -45,14 +56,14 @@ defmodule Base58Check do
     iex> decode58("S9qetuAJP32Bbu4")
          122622802348508130811865459
   """
-  @spec decode58(String.t()) :: Integer.t()
-  def decode58(code) when is_binary(code) do
-    decode58(to_char_list(code), 0)
+  @spec decode58(String.t(), String.t()) :: Integer.t()
+  def decode58(code, alphabet) when is_binary(code) do
+    decode58(to_char_list(code), alphabet, 0)
   end
-  def decode58(code), do: raise(ArgumentError, "expects base58-encoded binary")
-  defp decode58([], acc), do: acc
-  defp decode58([c|code], acc) do
-    decode58(code, (acc * 58) + do_decode58(c))
+  def decode58(code, alphabet), do: raise(ArgumentError, "expects base58-encoded binary")
+  defp decode58([], alphabet, acc), do: acc
+  defp decode58([c|code], alphabet, acc) do
+    decode58(code, alphabet, (acc * 58) + do_decode58(c, alphabet))
   end
 
   @doc """
@@ -73,7 +84,7 @@ defmodule Base58Check do
          "EPs5zLP2T9"
   """
   @spec encode58check(String.t(), String.t()) :: String.t()
-  def encode58check(data, prefix, isCompressed \\ false, checksumType \\ "256x2") when is_binary(prefix) and is_binary(data) do
+  def encode58check(data, prefix, isCompressed \\ false, checksumType \\ "256x2", alphabet \\ @default_alphabet) when is_binary(prefix) and is_binary(data) do
     data = case Base.decode16(String.upcase(data)) do
         {:ok, bin}  ->  bin
         :error      ->  data
@@ -81,12 +92,12 @@ defmodule Base58Check do
     compressed = if isCompressed do <<0x01>> else "" end
     versioned_data = prefix <> data <> compressed
     checksum = generate_checksum(versioned_data, checksumType)
-    encode58(versioned_data <> checksum)
+    encode58(versioned_data <> checksum, alphabet)
   end
-  def encode58check(data, prefix, isCompressed, checksumType) do
+  def encode58check(data, prefix, isCompressed, checksumType, alphabet) do
     prefix = if is_integer(prefix), do: :binary.encode_unsigned(prefix), else: prefix
     data = if is_integer(data), do: :binary.encode_unsigned(data), else: data
-    encode58check(data, prefix, isCompressed, checksumType)
+    encode58check(data, prefix, isCompressed, checksumType, alphabet)
   end
 
   @doc """
@@ -105,8 +116,8 @@ defmodule Base58Check do
          {"asd", <<1>>}
   """
   @spec decode58check(String.t()) :: Tuple.t()
-  def decode58check(code) do
-    decoded_bin = decode58(code) |> :binary.encode_unsigned()
+  def decode58check(code, alphabet \\ @default_alphabet) do
+    decoded_bin = decode58(code, alphabet) |> :binary.encode_unsigned()
     payload_size = byte_size(decoded_bin) - 8
 
     <<prefix::binary-size(4), payload::binary-size(payload_size), checksum::binary-size(4)>> = decoded_bin
